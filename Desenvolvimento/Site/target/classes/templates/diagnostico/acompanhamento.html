@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SecureDesk — Acompanhamento</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+  <style>
+    .radar-container {
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px 0;
+    }
+    .radar-legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      margin-top: 16px;
+    }
+    .radar-legend-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12.5px;
+    }
+    .radar-legend-item .dot {
+      width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+    }
+    .radar-legend-item .value {
+      margin-left: auto; font-weight: 700; font-size: 13px;
+    }
+
+    .matrix-cell {
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px;
+      border-radius: var(--radius);
+      font-size: 11px; font-weight: 600;
+      text-align: center;
+      transition: all 0.2s;
+      cursor: pointer;
+      min-height: 60px;
+    }
+    .matrix-cell:hover { transform: scale(1.05); box-shadow: var(--shadow-md); }
+    .matrix-cell.critical { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+    .matrix-cell.high { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+    .matrix-cell.medium { background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
+    .matrix-cell.low { background: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0; }
+
+    .trend-item {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .trend-item:last-child { border-bottom: none; }
+    .trend-item .trend-date {
+      font-size: 12px; color: var(--text-muted);
+      min-width: 80px;
+    }
+    .trend-item .trend-bar-track {
+      flex: 1; height: 8px;
+      background: var(--border);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .trend-item .trend-bar-fill {
+      height: 100%; border-radius: 100px;
+      background: linear-gradient(90deg, #2563EB, #0891B2);
+      transition: width 1s ease;
+    }
+    .trend-item .trend-value {
+      font-size: 14px; font-weight: 700;
+      min-width: 45px; text-align: right;
+    }
+
+    .detail-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+    .detail-row:hover { background: var(--surface-hover); border-color: var(--border); }
+    .detail-row .dr-function { min-width: 100px; }
+    .detail-row .dr-bar { flex: 1; }
+    .detail-row .dr-score { font-weight: 700; min-width: 60px; text-align: right; }
+    .detail-row .dr-mil { min-width: 60px; text-align: right; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="brand-text">
+        <h4>SecureDesk</h4>
+        <span>Protótipo TCC</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Principal</div>
+      <a th:href="@{/dashboard}" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-title">Módulos</div>
+      <a th:href="@{/diagnostico}" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Diagnóstico
+      </a>
+      <a th:href="@{/acompanhamento}" class="nav-item active">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Acompanhamento
+      </a>
+      <a th:href="@{/governanca}" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Governança
+        <span class="nav-badge">5</span>
+      </a>
+      <a th:href="@{/compliance}" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        Compliance
+      </a>
+      <div class="nav-section-title">Sistema</div>
+      <a th:href="@{/configuracoes}" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Configurações
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">GA</div>
+        <div class="user-info">
+          <div class="user-name">Gabriel Andrew</div>
+          <div class="user-role">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="breadcrumb">
+          <a th:href="@{/dashboard}">Início</a>
+          <span class="separator">/</span>
+          <span>Acompanhamento</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-secondary btn-sm">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Exportar PDF
+        </button>
+        <a th:href="@{/diagnostico}" class="btn btn-primary btn-sm">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Reavaliar
+        </a>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <div class="page-header">
+        <h1>Acompanhamento de Maturidade</h1>
+        <p>Radar de maturidade, score global e matriz de prioridade para a InnovaTech Soluções.</p>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid stagger" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="stat-card" style="text-align: center;">
+          <div style="font-size: 42px; font-weight: 800; background: linear-gradient(135deg, #2563EB, #0891B2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">45%</div>
+          <div class="stat-label">Score Global de Maturidade</div>
+          <div class="stat-change up">↑ 8% vs. último diagnóstico</div>
+        </div>
+        <div class="stat-card" style="text-align: center;">
+          <div style="font-size: 42px; font-weight: 800; color: var(--warning);">1.35</div>
+          <div class="stat-label">MIL Médio (de 3.0)</div>
+          <div class="stat-change down" style="background: var(--warning-light); color: var(--warning);">Abaixo do MIL 2</div>
+        </div>
+        <div class="stat-card" style="text-align: center;">
+          <div style="font-size: 42px; font-weight: 800; color: var(--danger);">12</div>
+          <div class="stat-label">Gaps Abaixo do MIL 2</div>
+          <div class="stat-change down">5 críticos</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom: 24px;">
+        <!-- RADAR CHART -->
+        <div class="card animate-fade">
+          <div class="card-header">
+            <h3>Radar de Maturidade NIST</h3>
+            <span class="badge badge-blue">Último: 24 Set 2026</span>
+          </div>
+          <div class="card-body">
+            <div class="radar-container">
+              <svg width="320" height="320" viewBox="0 0 400 400">
+                <!-- Background grid -->
+                <!-- Level rings at 25%, 50%, 75%, 100% -->
+                <polygon points="200,50 329.9,125 329.9,275 200,350 70.1,275 70.1,125" fill="none" stroke="#E2E8F0" stroke-width="1"/>
+                <polygon points="200,87.5 297.4,143.75 297.4,256.25 200,312.5 102.6,256.25 102.6,143.75" fill="none" stroke="#E2E8F0" stroke-width="1"/>
+                <polygon points="200,125 265,162.5 265,237.5 200,275 135,237.5 135,162.5" fill="none" stroke="#E2E8F0" stroke-width="1"/>
+                <polygon points="200,162.5 232.5,181.25 232.5,218.75 200,237.5 167.5,218.75 167.5,181.25" fill="none" stroke="#E2E8F0" stroke-width="1"/>
+
+                <!-- MIL 2 target ring (66.7%) -->
+                <polygon points="200,100 286.6,150 286.6,250 200,300 113.4,250 113.4,150"
+                         fill="rgba(37,99,235,0.05)" stroke="#2563EB" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+                <!-- Axes -->
+                <line x1="200" y1="200" x2="200" y2="50" stroke="#E2E8F0" stroke-width="1"/>
+                <line x1="200" y1="200" x2="329.9" y2="125" stroke="#E2E8F0" stroke-width="1"/>
+                <line x1="200" y1="200" x2="329.9" y2="275" stroke="#E2E8F0" stroke-width="1"/>
+                <line x1="200" y1="200" x2="200" y2="350" stroke="#E2E8F0" stroke-width="1"/>
+                <line x1="200" y1="200" x2="70.1" y2="275" stroke="#E2E8F0" stroke-width="1"/>
+                <line x1="200" y1="200" x2="70.1" y2="125" stroke="#E2E8F0" stroke-width="1"/>
+
+                <!-- Data polygon -->
+                <!-- GV:40%, ID:70%, PR:60%, DE:30%, RS:50%, RC:20% -->
+                <polygon points="200,140 290.9,147.5 278,245 200,260 135,250 148.1,170"
+                         fill="rgba(37,99,235,0.12)" stroke="#2563EB" stroke-width="2.5"/>
+
+                <!-- Data points -->
+                <circle cx="200" cy="140" r="5" fill="#7C3AED" stroke="#fff" stroke-width="2"/>
+                <circle cx="290.9" cy="147.5" r="5" fill="#2563EB" stroke="#fff" stroke-width="2"/>
+                <circle cx="278" cy="245" r="5" fill="#059669" stroke="#fff" stroke-width="2"/>
+                <circle cx="200" cy="260" r="5" fill="#D97706" stroke="#fff" stroke-width="2"/>
+                <circle cx="135" cy="250" r="5" fill="#DC2626" stroke="#fff" stroke-width="2"/>
+                <circle cx="148.1" cy="170" r="5" fill="#0891B2" stroke="#fff" stroke-width="2"/>
+
+                <!-- Labels -->
+                <text x="200" y="38" text-anchor="middle" font-size="12" font-weight="600" fill="#7C3AED" font-family="Inter">Governar</text>
+                <text x="342" y="122" text-anchor="start" font-size="12" font-weight="600" fill="#2563EB" font-family="Inter">Identificar</text>
+                <text x="342" y="280" text-anchor="start" font-size="12" font-weight="600" fill="#059669" font-family="Inter">Proteger</text>
+                <text x="200" y="372" text-anchor="middle" font-size="12" font-weight="600" fill="#D97706" font-family="Inter">Detectar</text>
+                <text x="58" y="280" text-anchor="end" font-size="12" font-weight="600" fill="#DC2626" font-family="Inter">Responder</text>
+                <text x="58" y="122" text-anchor="end" font-size="12" font-weight="600" fill="#0891B2" font-family="Inter">Recuperar</text>
+
+                <!-- MIL 2 label -->
+                <text x="200" y="92" text-anchor="middle" font-size="10" fill="#2563EB" font-family="Inter" font-weight="600" opacity="0.7">MIL 2</text>
+              </svg>
+            </div>
+
+            <div class="radar-legend">
+              <div class="radar-legend-item">
+                <div class="dot" style="background: #7C3AED;"></div>
+                <span>Governar</span>
+                <span class="value" style="color: #7C3AED;">MIL 1.2</span>
+              </div>
+              <div class="radar-legend-item">
+                <div class="dot" style="background: #2563EB;"></div>
+                <span>Identificar</span>
+                <span class="value" style="color: #2563EB;">MIL 2.1</span>
+              </div>
+              <div class="radar-legend-item">
+                <div class="dot" style="background: #059669;"></div>
+                <span>Proteger</span>
+                <span class="value" style="color: #059669;">MIL 1.8</span>
+              </div>
+              <div class="radar-legend-item">
+                <div class="dot" style="background: #D97706;"></div>
+                <span>Detectar</span>
+                <span class="value" style="color: #D97706;">MIL 0.9</span>
+              </div>
+              <div class="radar-legend-item">
+                <div class="dot" style="background: #DC2626;"></div>
+                <span>Responder</span>
+                <span class="value" style="color: #DC2626;">MIL 1.5</span>
+              </div>
+              <div class="radar-legend-item">
+                <div class="dot" style="background: #0891B2;"></div>
+                <span>Recuperar</span>
+                <span class="value" style="color: #0891B2;">MIL 0.6</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRIORITY MATRIX -->
+        <div class="card animate-fade">
+          <div class="card-header">
+            <h3>Matriz de Prioridade</h3>
+            <span class="badge badge-gray">Impacto × Custo</span>
+          </div>
+          <div class="card-body">
+            <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-bottom: 8px; font-weight: 600;">
+              ← Custo de Mitigação →
+            </div>
+            <div style="display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 6px; align-items: center;">
+              <!-- Header row -->
+              <div></div>
+              <div style="text-align: center; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Baixo</div>
+              <div style="text-align: center; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Médio</div>
+              <div style="text-align: center; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Alto</div>
+
+              <!-- Alto impacto -->
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; padding: 8px 2px;">Alto</div>
+              <div class="matrix-cell critical">
+                <div>
+                  <div style="font-weight: 700; margin-bottom: 2px;">🔴 PRIORIDADE 1</div>
+                  <div style="font-size: 10px;">Plano DR<br>Logs centralizados</div>
+                </div>
+              </div>
+              <div class="matrix-cell critical">
+                <div>
+                  <div style="font-weight: 700; margin-bottom: 2px;">🔴 PRIORIDADE 2</div>
+                  <div style="font-size: 10px;">SIEM</div>
+                </div>
+              </div>
+              <div class="matrix-cell high">
+                <div>
+                  <div style="font-weight: 700; margin-bottom: 2px;">🟡 AVALIAR</div>
+                  <div style="font-size: 10px;">Pentest contínuo</div>
+                </div>
+              </div>
+
+              <!-- Médio impacto -->
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; padding: 8px 2px;">Médio</div>
+              <div class="matrix-cell high">
+                <div>
+                  <div style="font-weight: 700; margin-bottom: 2px;">🟡 PRIORIDADE 3</div>
+                  <div style="font-size: 10px;">MFA<br>Inventário ativos</div>
+                </div>
+              </div>
+              <div class="matrix-cell medium">
+                <div>
+                  <div style="font-weight: 700; margin-bottom: 2px;">🔵 PLANEJAR</div>
+                  <div style="font-size: 10px;">Resp. incidentes</div>
+                </div>
+              </div>
+              <div class="matrix-cell medium">
+                <div>
+                  <div style="font-weight: 700; margin-bottom: 2px;">🔵 PLANEJAR</div>
+                  <div style="font-size: 10px;">Treinamento</div>
+                </div>
+              </div>
+
+              <!-- Baixo impacto -->
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; padding: 8px 2px;">Baixo</div>
+              <div class="matrix-cell low">
+                <div>
+                  <div style="font-weight: 700; margin-bottom: 2px;">🟢 FÁCIL</div>
+                  <div style="font-size: 10px;">Política backup</div>
+                </div>
+              </div>
+              <div class="matrix-cell low">
+                <div>
+                  <div style="font-weight: 700; margin-bottom: 2px;">🟢 AGENDAR</div>
+                  <div style="font-size: 10px;">Revisão PSI</div>
+                </div>
+              </div>
+              <div class="matrix-cell medium">
+                <div>
+                  <div style="font-weight: 700; margin-bottom: 2px;">🔵 OPCIONAL</div>
+                  <div style="font-size: 10px;">—</div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top: 12px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+              ↑ Impacto no Negócio
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail table and trend -->
+      <div class="grid-2">
+        <!-- Detail Breakdown -->
+        <div class="card animate-fade">
+          <div class="card-header">
+            <h3>Detalhamento por Função</h3>
+          </div>
+          <div class="card-body">
+            <div class="detail-row">
+              <div class="dr-function"><span class="nist-badge nist-gv">GV</span> Governar</div>
+              <div class="dr-bar">
+                <div class="progress-bar"><div class="progress-fill purple" style="width: 40%;"></div></div>
+              </div>
+              <div class="dr-score" style="color: #7C3AED;">40%</div>
+              <div class="dr-mil"><span class="mil-badge mil-1">1.2</span></div>
+            </div>
+            <div class="detail-row">
+              <div class="dr-function"><span class="nist-badge nist-id">ID</span> Identificar</div>
+              <div class="dr-bar">
+                <div class="progress-bar"><div class="progress-fill blue" style="width: 70%;"></div></div>
+              </div>
+              <div class="dr-score" style="color: #2563EB;">70%</div>
+              <div class="dr-mil"><span class="mil-badge mil-2">2.1</span></div>
+            </div>
+            <div class="detail-row">
+              <div class="dr-function"><span class="nist-badge nist-pr">PR</span> Proteger</div>
+              <div class="dr-bar">
+                <div class="progress-bar"><div class="progress-fill green" style="width: 60%;"></div></div>
+              </div>
+              <div class="dr-score" style="color: #059669;">60%</div>
+              <div class="dr-mil"><span class="mil-badge mil-1">1.8</span></div>
+            </div>
+            <div class="detail-row">
+              <div class="dr-function"><span class="nist-badge nist-de">DE</span> Detectar</div>
+              <div class="dr-bar">
+                <div class="progress-bar"><div class="progress-fill orange" style="width: 30%;"></div></div>
+              </div>
+              <div class="dr-score" style="color: #D97706;">30%</div>
+              <div class="dr-mil"><span class="mil-badge mil-0">0.9</span></div>
+            </div>
+            <div class="detail-row">
+              <div class="dr-function"><span class="nist-badge nist-rs">RS</span> Responder</div>
+              <div class="dr-bar">
+                <div class="progress-bar"><div class="progress-fill red" style="width: 50%;"></div></div>
+              </div>
+              <div class="dr-score" style="color: #DC2626;">50%</div>
+              <div class="dr-mil"><span class="mil-badge mil-1">1.5</span></div>
+            </div>
+            <div class="detail-row">
+              <div class="dr-function"><span class="nist-badge nist-rc">RC</span> Recuperar</div>
+              <div class="dr-bar">
+                <div class="progress-bar"><div class="progress-fill cyan" style="width: 20%;"></div></div>
+              </div>
+              <div class="dr-score" style="color: #0891B2;">20%</div>
+              <div class="dr-mil"><span class="mil-badge mil-0">0.6</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trend -->
+        <div class="card animate-fade">
+          <div class="card-header">
+            <h3>Evolução do Score</h3>
+            <span class="badge badge-green">+8%</span>
+          </div>
+          <div class="card-body">
+            <div class="trend-item">
+              <span class="trend-date">Jul 2026</span>
+              <div class="trend-bar-track"><div class="trend-bar-fill" style="width: 25%;"></div></div>
+              <span class="trend-value">25%</span>
+            </div>
+            <div class="trend-item">
+              <span class="trend-date">Ago 2026</span>
+              <div class="trend-bar-track"><div class="trend-bar-fill" style="width: 32%;"></div></div>
+              <span class="trend-value">32%</span>
+            </div>
+            <div class="trend-item">
+              <span class="trend-date">Set 2026</span>
+              <div class="trend-bar-track"><div class="trend-bar-fill" style="width: 37%;"></div></div>
+              <span class="trend-value">37%</span>
+            </div>
+            <div class="trend-item">
+              <span class="trend-date" style="font-weight: 600; color: var(--text);">Atual</span>
+              <div class="trend-bar-track"><div class="trend-bar-fill" style="width: 45%;"></div></div>
+              <span class="trend-value" style="color: var(--primary-500);">45%</span>
+            </div>
+
+            <div style="margin-top: 20px; padding: 16px; background: var(--primary-50); border-radius: var(--radius); border: 1px solid var(--primary-100);">
+              <div style="font-size: 12px; font-weight: 600; color: var(--primary-600); margin-bottom: 6px;">Meta: Atingir MIL 2 (66.7%)</div>
+              <div class="progress-bar" style="height: 10px; margin-bottom: 6px;">
+                <div class="progress-fill blue" style="width: 67.5%;"></div>
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted);">Faltam <strong style="color: var(--text);">21.7 pontos percentuais</strong> para o patamar mínimo recomendado</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>
