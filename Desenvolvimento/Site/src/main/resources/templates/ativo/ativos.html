@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SecureDesk — Inventário de Ativos de TI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+  <style>
+    .ativos-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .ativos-grid { grid-template-columns: 1fr; }
+    }
+    .quota-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .quota-progress-wrapper {
+      flex: 1;
+    }
+    .quota-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: var(--border-light, #E2E8F0);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .quota-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2563EB, #0891B2);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+    .quota-bar-fill.danger {
+      background: linear-gradient(90deg, #DC2626, #EF4444);
+    }
+    .alert-banner {
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      font-size: 13.5px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .alert-success {
+      background: #ECFDF5;
+      border: 1px solid #10B981;
+      color: #065F46;
+    }
+    .alert-error {
+      background: #FEF2F2;
+      border: 1px solid #EF4444;
+      color: #991B1B;
+    }
+    .field-error {
+      color: #DC2626;
+      font-size: 11.5px;
+      margin-top: 4px;
+    }
+    .table-ativos {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .table-ativos th, .table-ativos td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-light, #E2E8F0);
+      font-size: 13px;
+    }
+    .table-ativos th {
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: #F8FAFC;
+    }
+    .actions-cell {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- SIDEBAR FRAGMENT -->
+  <aside th:replace="~{fragments/layout :: sidebar('ativos')}"></aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <!-- TOPBAR FRAGMENT -->
+    <header th:replace="~{fragments/layout :: topbar('ativos', 'Inventário de Ativos de TI')}"></header>
+
+    <div class="page-content">
+      <div class="page-header">
+        <h1>Inventário do Pequeno Parque Tecnológico</h1>
+        <p>Gerencie os dispositivos da PME classificados nas 4 categorias do framework híbrido (limite estrito RN01: até 100 ativos).</p>
+      </div>
+
+      <!-- Feedback Flash Attributes -->
+      <div th:if="${sucesso}" class="alert-banner alert-success" role="alert">
+        <span th:text="${sucesso}">Operação realizada com sucesso!</span>
+      </div>
+
+      <div th:if="${erro}" class="alert-banner alert-error" role="alert">
+        <span th:text="${erro}">Erro ao processar solicitação.</span>
+      </div>
+
+      <!-- Indicador Visual da Trava de 100 Ativos (RN01) -->
+      <div class="quota-card">
+        <div>
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
+            Cota do Parque Tecnológico (RN01)
+          </div>
+          <div style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">
+            <span th:text="${ativosTexto}">0/100</span>
+            <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);" th:text="${trava100Ativos}">
+              0 de 100 ativos gerenciados
+            </span>
+          </div>
+        </div>
+        <div class="quota-progress-wrapper">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary);">
+            <span>Ocupação atual do parque</span>
+            <strong th:text="${percentualOcupacao + '%'}">0%</strong>
+          </div>
+          <div class="quota-bar-bg">
+            <div class="quota-bar-fill"
+                 th:classappend="${totalAtivos >= 90} ? ' danger' : ''"
+                 th:style="'width: ' + ${percentualOcupacao} + '%'"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ativos-grid">
+        <!-- Formulário Dinâmico Thymeleaf (Criar / Editar) -->
+        <div class="card" style="padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);">
+          <h3 style="font-size: 16px; margin-bottom: 4px;"
+              th:text="${ativoEmEdicaoId != null ? 'Editar Ativo #' + ativoEmEdicaoId : 'Cadastrar Novo Ativo'}">
+            Cadastrar Novo Ativo
+          </h3>
+          <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 20px;">
+            Preencha os dados do ativo para contabilizar no inventário NIST CSF 2.0 (ID.AM).
+          </p>
+
+          <form th:action="${ativoEmEdicaoId != null ? '/ativos/' + ativoEmEdicaoId : '/ativos'}"
+                th:object="${ativoForm}"
+                method="post">
+
+            <input type="hidden" th:field="*{empresaId}">
+            <input type="hidden" th:field="*{ativo}">
+
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label class="form-label" for="nome">Nome / Identificação do Ativo *</label>
+              <input id="nome" type="text" class="form-input" th:field="*{nome}" placeholder="Ex: Lote Notebooks Financeiro / Firewall Matriz">
+              <div class="field-error" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}">Erro no nome</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label class="form-label" for="tipo">Categoria do Parque (4 Categorias TCC) *</label>
+              <select id="tipo" class="form-select" th:field="*{tipo}">
+                <option th:each="itemTipo : ${tiposAtivo}"
+                        th:value="${itemTipo}"
+                        th:text="${itemTipo.name() + ' — ' + itemTipo.descricao}">
+                  ENDPOINTS
+                </option>
+              </select>
+              <div class="field-error" th:if="${#fields.hasErrors('tipo')}" th:errors="*{tipo}">Erro no tipo</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label class="form-label" for="quantidade">Quantidade de Unidades (Máx. 100) *</label>
+              <input id="quantidade" type="number" min="1" max="100" class="form-input" th:field="*{quantidade}">
+              <div class="field-error" th:if="${#fields.hasErrors('quantidade')}" th:errors="*{quantidade}">Erro na quantidade</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label class="form-label" for="localizacao">Localização (Física ou Nuvem)</label>
+              <input id="localizacao" type="text" class="form-input" th:field="*{localizacao}" placeholder="Ex: Sede São Paulo / AWS us-east-1">
+              <div class="field-error" th:if="${#fields.hasErrors('localizacao')}" th:errors="*{localizacao}">Erro na localização</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label class="form-label" for="responsavel">Responsável / Custodiante</label>
+              <input id="responsavel" type="text" class="form-input" th:field="*{responsavel}" placeholder="Ex: Equipe de TI / Lucas Oliveira">
+              <div class="field-error" th:if="${#fields.hasErrors('responsavel')}" th:errors="*{responsavel}">Erro no responsável</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 18px;">
+              <label class="form-label" for="descricao">Descrição Técnica / SO / Observações</label>
+              <input id="descricao" type="text" class="form-input" th:field="*{descricao}" placeholder="Ex: Windows 11 Pro com BitLocker ativo">
+              <div class="field-error" th:if="${#fields.hasErrors('descricao')}" th:errors="*{descricao}">Erro na descrição</div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+              <button type="submit" class="btn btn-primary" style="flex: 1;"
+                      th:text="${ativoEmEdicaoId != null ? 'Salvar Alterações' : 'Adicionar ao Parque'}">
+                Adicionar ao Parque
+              </button>
+              <a th:if="${ativoEmEdicaoId != null}" th:href="@{/ativos}" class="btn btn-secondary">Cancelar</a>
+            </div>
+          </form>
+        </div>
+
+        <!-- Tabela de Ativos Cadastrados -->
+        <div class="card" style="padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div>
+              <h3 style="font-size: 16px; margin-bottom: 2px;">Ativos Registrados da PME</h3>
+              <p style="font-size: 12.5px; color: var(--text-secondary);">
+                Apenas ativos com status <strong>Ativo</strong> consomem a cota de 100 dispositivos.
+              </p>
+            </div>
+          </div>
+
+          <div th:if="${#lists.isEmpty(ativos)}" style="padding: 36px; text-align: center; color: var(--text-muted);">
+            Nenhum ativo de TI cadastrado até o momento. Utilize o formulário ao lado para iniciar o inventário.
+          </div>
+
+          <table class="table-ativos" th:if="${!#lists.isEmpty(ativos)}">
+            <thead>
+              <tr>
+                <th>Nome / Identificação</th>
+                <th>Categoria</th>
+                <th>Qtd.</th>
+                <th>Localização</th>
+                <th>Responsável</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="item : ${ativos}">
+                <td>
+                  <strong th:text="${item.nome}">Notebook</strong>
+                  <div style="font-size: 11.5px; color: var(--text-muted);" th:text="${item.descricao}">SO</div>
+                </td>
+                <td>
+                  <span class="badge badge-blue" th:text="${item.tipo}">ENDPOINTS</span>
+                </td>
+                <td>
+                  <strong th:text="${item.quantidade}">1</strong>
+                </td>
+                <td th:text="${item.localizacao != null and !item.localizacao.isEmpty() ? item.localizacao : '—'}">Sede</td>
+                <td th:text="${item.responsavel != null and !item.responsavel.isEmpty() ? item.responsavel : '—'}">TI</td>
+                <td>
+                  <span th:if="${item.ativo}" class="badge badge-green">Ativo</span>
+                  <span th:unless="${item.ativo}" class="badge badge-gray">Inativo</span>
+                </td>
+                <td>
+                  <div class="actions-cell">
+                    <a th:href="@{/ativos/{id}/editar(id=${item.id})}" class="btn btn-ghost btn-sm">Editar</a>
+                    <form th:if="${item.ativo}" th:action="@{/ativos/{id}/inativar(id=${item.id})}" method="post" style="display:inline;">
+                      <button type="submit" class="btn btn-secondary btn-sm">Inativar</button>
+                    </form>
+                    <form th:action="@{/ativos/{id}/excluir(id=${item.id})}" method="post" style="display:inline;">
+                      <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

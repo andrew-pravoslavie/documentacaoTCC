@@ -137,74 +137,142 @@
       from { opacity: 0; transform: translateY(-4px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ── Governança dinâmica (Thymeleaf) ── */
+    a.filter-chip { text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+    .alert-banner {
+      padding: 14px 18px; border-radius: var(--radius);
+      margin-bottom: 20px; font-size: 13.5px; font-weight: 500;
+    }
+    .alert-banner.alert-success { background: #ECFDF5; border: 1px solid #10B981; color: #065F46; }
+    .alert-banner.alert-error { background: #FEF2F2; border: 1px solid #EF4444; color: #991B1B; }
+    .field-error { color: #DC2626; font-size: 11.5px; margin-top: 4px; }
+
+    .kanban-card .priority-bar.p-critica { background: var(--danger); }
+    .kanban-card .priority-bar.p-alta { background: var(--warning); }
+    .kanban-card .priority-bar.p-media { background: var(--primary-500); }
+    .kanban-card .priority-bar.p-baixa { background: var(--success); }
+    .kanban-card.concluida { opacity: 0.8; }
+    .kanban-card.concluida .card-title { text-decoration: line-through; color: var(--text-muted); }
+    .kanban-card .card-desc { font-size: 11.5px; color: var(--text-secondary); margin: 2px 0 8px; line-height: 1.4; }
+    .kanban-empty { padding: 24px 8px; text-align: center; font-size: 12px; color: var(--text-muted); }
+    .card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .card-actions form { display: inline; margin: 0; }
+    .btn-xs { padding: 3px 9px; font-size: 11px; }
+    .upload-form { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+    .upload-form input[type=file] { font-size: 11px; }
+    .upload-form .form-input { padding: 6px 10px; font-size: 12px; }
+    .evidence-file .ef-desc { font-size: 10px; color: var(--text-muted); display: block; }
+    .cancel-list { margin-top: 24px; }
+    .cancel-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 10px 14px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); margin-bottom: 8px; font-size: 13px;
+    }
+    .modal { max-height: 90vh; overflow-y: auto; }
   </style>
 </head>
 <body>
+
+<!-- Fragmento reutilizável do card do Kanban (definido uma única vez, usado nas 3 colunas). -->
+<div th:remove="all">
+  <div class="kanban-card" th:fragment="tarefaCard(t)" th:classappend="${t.status.concluido} ? 'concluida' : ''">
+    <div class="priority-bar" th:classappend="'p-' + ${#strings.toLowerCase(t.prioridade.name())}"></div>
+    <div class="card-title" th:text="${t.titulo}">Título da tarefa</div>
+    <div class="card-desc" th:if="${t.descricao != null and !#strings.isEmpty(t.descricao)}"
+         th:text="${#strings.abbreviate(t.descricao, 110)}">Descrição</div>
+    <div class="card-meta">
+      <span class="nist-badge" th:classappend="'nist-' + ${#strings.toLowerCase(t.funcaoNistSigla)}" th:text="${t.funcaoNistSigla}">PR</span>
+      <span class="badge"
+            th:classappend="${t.prioridade.name() == 'CRITICA'} ? 'badge-red' : (${t.prioridade.name() == 'ALTA'} ? 'badge-orange' : (${t.prioridade.name() == 'MEDIA'} ? 'badge-blue' : 'badge-green'))"
+            th:text="${t.prioridade.descricao}">Alta</span>
+      <span class="badge badge-red" th:if="${t.atrasada}">Atrasada</span>
+      <span class="evidence-tag" th:if="${!#lists.isEmpty(t.evidencias)}">
+        <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+        <span th:text="${#lists.size(t.evidencias) + (#lists.size(t.evidencias) == 1 ? ' evidência' : ' evidências')}">1 evidência</span>
+      </span>
+    </div>
+    <div class="card-footer-meta">
+      <div class="card-date" th:style="${t.atrasada} ? 'color: var(--danger); font-weight: 600;' : ''">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span th:if="${t.prazoLimite != null}" th:text="${#temporals.format(t.prazoLimite, 'dd/MM/yyyy')}">30/09/2026</span>
+        <span th:if="${t.prazoLimite == null}">Sem prazo</span>
+      </div>
+      <div class="card-assignee" th:attr="data-tooltip=${t.responsavelNome != null ? t.responsavelNome : 'Sem responsável'}"
+           th:text="${iniciaisPorTarefa[t.id]}">GA</div>
+    </div>
+
+    <!-- Movimentação no Kanban + edição/exclusão -->
+    <div class="card-actions">
+      <form th:if="${t.status.pendenteOuBacklog}" th:action="@{/governanca/{id}/status(id=${t.id})}" method="post">
+        <input type="hidden" name="status" value="EM_ANDAMENTO">
+        <button type="submit" class="btn btn-primary btn-xs">Iniciar</button>
+      </form>
+      <form th:if="${t.status.name() == 'EM_ANDAMENTO'}" th:action="@{/governanca/{id}/status(id=${t.id})}" method="post">
+        <input type="hidden" name="status" value="CONCLUIDO">
+        <button type="submit" class="btn btn-success btn-xs">Concluir</button>
+      </form>
+      <form th:if="${t.status.name() == 'EM_ANDAMENTO'}" th:action="@{/governanca/{id}/status(id=${t.id})}" method="post">
+        <input type="hidden" name="status" value="BACKLOG">
+        <button type="submit" class="btn btn-secondary btn-xs">Voltar</button>
+      </form>
+      <form th:if="${t.status.concluido}" th:action="@{/governanca/{id}/status(id=${t.id})}" method="post">
+        <input type="hidden" name="status" value="EM_ANDAMENTO">
+        <button type="submit" class="btn btn-secondary btn-xs">Reabrir</button>
+      </form>
+      <form th:if="${!t.status.concluido}" th:action="@{/governanca/{id}/status(id=${t.id})}" method="post"
+            onsubmit="return confirm('Cancelar esta tarefa?');">
+        <input type="hidden" name="status" value="CANCELADA">
+        <button type="submit" class="btn btn-ghost btn-xs">Cancelar</button>
+      </form>
+      <a th:href="@{/governanca/{id}/editar(id=${t.id})}" class="btn btn-ghost btn-xs">Editar</a>
+      <form th:action="@{/governanca/{id}/excluir(id=${t.id})}" method="post"
+            onsubmit="return confirm('Excluir a tarefa e todas as suas evidências?');">
+        <button type="submit" class="btn btn-danger btn-xs">Excluir</button>
+      </form>
+    </div>
+
+    <!-- Evidências por tarefa -->
+    <button type="button" class="card-expand-btn" onclick="this.closest('.kanban-card').classList.toggle('expanded')">
+      <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      <span th:text="'Anexos e evidências' + (${#lists.isEmpty(t.evidencias)} ? '' : ' (' + ${#lists.size(t.evidencias)} + ')')">Anexos e evidências</span>
+    </button>
+    <div class="card-evidence">
+      <div class="card-evidence-title">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+        <span th:text="${#lists.isEmpty(t.evidencias)} ? 'Nenhuma evidência' : ${#lists.size(t.evidencias)} + (${#lists.size(t.evidencias)} == 1 ? ' arquivo anexado' : ' arquivos anexados')">Nenhuma evidência</span>
+      </div>
+      <div class="evidence-file" th:each="ev : ${t.evidencias}">
+        <svg class="ef-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span class="ef-name">
+          <span th:text="${ev.nomeArquivo}">arquivo.pdf</span>
+          <span class="ef-desc" th:if="${ev.descricao != null and !#strings.isEmpty(ev.descricao)}" th:text="${ev.descricao}">Descrição</span>
+        </span>
+        <span class="ef-size"
+              th:text="${ev.tamanhoBytes >= 1048576 ? #numbers.formatDecimal(ev.tamanhoBytes / 1048576.0, 1, 1, 'POINT') + ' MB' : #numbers.formatDecimal(ev.tamanhoBytes / 1024.0, 1, 0, 'POINT') + ' KB'}">248 KB</span>
+        <span class="ef-date" th:text="${#temporals.format(ev.dataUpload, 'dd/MM/yyyy')}">24/09/2026</span>
+      </div>
+      <form class="upload-form" th:action="@{/governanca/{id}/evidencias(id=${t.id})}" method="post" enctype="multipart/form-data">
+        <input type="file" name="arquivo" required>
+        <input type="text" name="descricao" class="form-input" maxlength="500" placeholder="Descrição da evidência (opcional)">
+        <button type="submit" class="upload-inline" style="background: none; font-family: inherit;">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          <span th:text="${#lists.isEmpty(t.evidencias)} ? 'Anexar evidência' : 'Anexar mais evidências'">Anexar evidência</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="app-layout">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      </div>
-      <div class="brand-text"><h4>SecureDesk</h4><span>Protótipo TCC</span></div>
-    </div>
-    <nav class="sidebar-nav">
-      <div class="nav-section-title">Principal</div>
-      <a th:href="@{/dashboard}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Dashboard
-      </a>
-      <div class="nav-section-title">Módulos</div>
-      <a th:href="@{/diagnostico}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-        Diagnóstico
-      </a>
-      <a th:href="@{/acompanhamento}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        Acompanhamento
-      </a>
-      <a th:href="@{/governanca}" class="nav-item active">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-        Governança
-        <span class="nav-badge">5</span>
-      </a>
-      <a th:href="@{/compliance}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-        Compliance
-      </a>
-      <div class="nav-section-title">Sistema</div>
-      <a th:href="@{/configuracoes}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        Configurações
-      </a>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="user-avatar">GA</div>
-        <div class="user-info"><div class="user-name">Gabriel Andrew</div><div class="user-role">Administrador</div></div>
-      </div>
-    </div>
-  </aside>
+  <!-- SIDEBAR FRAGMENT -->
+  <aside th:replace="~{fragments/layout :: sidebar('governanca')}"></aside>
 
   <!-- MAIN -->
   <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <div class="breadcrumb">
-          <a th:href="@{/dashboard}">Início</a>
-          <span class="separator">/</span>
-          <span>Governança Operacional</span>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('modal').classList.add('active')">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          Nova Tarefa
-        </button>
-      </div>
-    </header>
+    <!-- TOPBAR FRAGMENT -->
+    <header th:replace="~{fragments/layout :: topbar('governanca', 'Governança Operacional')}"></header>
 
     <div class="page-content">
       <div class="page-header">
@@ -212,43 +280,43 @@
         <p>Kanban de remediação de gaps — tudo abaixo do MIL 2 vira tarefa acionável com upload de evidências.</p>
       </div>
 
+      <!-- Feedback (Flash Attributes) -->
+      <div th:if="${sucesso}" class="alert-banner alert-success" role="alert" th:text="${sucesso}">Operação realizada com sucesso!</div>
+      <div th:if="${erro}" class="alert-banner alert-error" role="alert" th:text="${erro}">Erro ao processar solicitação.</div>
+
       <!-- Stats -->
       <div class="stats-grid stagger" style="grid-template-columns: repeat(4, 1fr);">
         <div class="stat-card">
-          <div class="stat-value" style="color: var(--warning);">5</div>
+          <div class="stat-value" style="color: var(--warning);" th:text="${tarefasPendentes}">0</div>
           <div class="stat-label">Pendentes</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" style="color: var(--primary-500);">4</div>
+          <div class="stat-value" style="color: var(--primary-500);" th:text="${tarefasEmAndamento}">0</div>
           <div class="stat-label">Em Andamento</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" style="color: var(--success);">7</div>
+          <div class="stat-value" style="color: var(--success);" th:text="${tarefasConcluidas}">0</div>
           <div class="stat-label">Concluídas</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" style="color: var(--danger);">2</div>
+          <div class="stat-value" style="color: var(--danger);" th:text="${tarefasAtrasadas}">0</div>
           <div class="stat-label">Atrasadas</div>
         </div>
       </div>
 
-      <!-- Filters -->
+      <!-- Filtros (server-side) -->
       <div class="kanban-filters">
         <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Filtrar:</span>
-        <button class="filter-chip active">Todas</button>
-        <button class="filter-chip">
-          <span class="nist-badge nist-gv" style="font-size: 9px; padding: 1px 5px;">GV</span> Governar
-        </button>
-        <button class="filter-chip">
-          <span class="nist-badge nist-de" style="font-size: 9px; padding: 1px 5px;">DE</span> Detectar
-        </button>
-        <button class="filter-chip">
-          <span class="nist-badge nist-rs" style="font-size: 9px; padding: 1px 5px;">RS</span> Responder
-        </button>
-        <button class="filter-chip">
-          <span class="nist-badge nist-rc" style="font-size: 9px; padding: 1px 5px;">RC</span> Recuperar
-        </button>
-        <button class="filter-chip">🔴 Críticos</button>
+        <a th:href="@{/governanca}" class="filter-chip"
+           th:classappend="${filtroFuncao == null and filtroPrioridade == null} ? ' active' : ''">Todas</a>
+        <a th:each="f : ${funcoesNist}" th:href="@{/governanca(funcao=${f.sigla})}" class="filter-chip"
+           th:classappend="${filtroFuncao == f.sigla} ? ' active' : ''">
+          <span class="nist-badge" th:classappend="'nist-' + ${#strings.toLowerCase(f.sigla)}"
+                style="font-size: 9px; padding: 1px 5px;" th:text="${f.sigla}">GV</span>
+          <span th:text="${f.nome}">Governar</span>
+        </a>
+        <a th:href="@{/governanca(prioridade='CRITICA')}" class="filter-chip"
+           th:classappend="${filtroPrioridade == 'CRITICA'} ? ' active' : ''">🔴 Críticos</a>
       </div>
 
       <!-- KANBAN BOARD -->
@@ -258,417 +326,136 @@
         <div class="kanban-column pending">
           <div class="kanban-column-header">
             <h4>⏳ Pendente</h4>
-            <span class="count">5</span>
+            <span class="count" th:text="${#lists.size(pendentes)}">0</span>
           </div>
-
-          <div class="kanban-card">
-            <div class="priority-bar critical"></div>
-            <div class="card-title">Elaborar plano de recuperação de desastres (DR)</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-rc">RC</span>
-              <span class="mil-badge mil-0" style="font-size: 9px;">MIL 0</span>
-            </div>
-            <div class="card-footer-meta">
-              <div class="card-date">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                30 Set
-              </div>
-              <div class="card-assignee" data-tooltip="Lucas">LO</div>
-            </div>
-            <button class="card-expand-btn" onclick="this.closest('.kanban-card').classList.toggle('expanded')">
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-              Anexos e evidências
-            </button>
-            <div class="card-evidence">
-              <div class="card-evidence-title">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                Nenhuma evidência
-              </div>
-              <div class="upload-inline">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                Anexar evidência
-              </div>
-            </div>
-          </div>
-
-          <div class="kanban-card">
-            <div class="priority-bar critical"></div>
-            <div class="card-title">Centralizar logs de sistema e segurança</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-de">DE</span>
-              <span class="mil-badge mil-0" style="font-size: 9px;">MIL 0</span>
-            </div>
-            <div class="card-footer-meta">
-              <div class="card-date">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                15 Out
-              </div>
-              <div class="card-assignee" data-tooltip="Bruno">BC</div>
-            </div>
-            <button class="card-expand-btn" onclick="this.closest('.kanban-card').classList.toggle('expanded')">
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-              Anexos e evidências
-            </button>
-            <div class="card-evidence">
-              <div class="card-evidence-title">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                Nenhuma evidência
-              </div>
-              <div class="upload-inline">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                Anexar evidência
-              </div>
-            </div>
-          </div>
-
-          <div class="kanban-card">
-            <div class="priority-bar high"></div>
-            <div class="card-title">Implementar programa de testes de intrusão periódicos</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-de">DE</span>
-              <span class="mil-badge mil-1" style="font-size: 9px;">MIL 1</span>
-            </div>
-            <div class="card-footer-meta">
-              <div class="card-date">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                30 Out
-              </div>
-              <div class="card-assignee" data-tooltip="Rafael">RM</div>
-            </div>
-          </div>
-
-          <div class="kanban-card">
-            <div class="priority-bar high"></div>
-            <div class="card-title">Completar inventário de ativos de TI</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-gv">GV</span>
-              <span class="mil-badge mil-1" style="font-size: 9px;">MIL 1</span>
-            </div>
-            <div class="card-footer-meta">
-              <div class="card-date">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                10 Out
-              </div>
-              <div class="card-assignee" data-tooltip="Gabriel">GA</div>
-            </div>
-          </div>
-
-          <div class="kanban-card">
-            <div class="priority-bar medium"></div>
-            <div class="card-title">Formalizar plano de resposta a incidentes</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-rs">RS</span>
-              <span class="mil-badge mil-1" style="font-size: 9px;">MIL 1</span>
-            </div>
-            <div class="card-footer-meta">
-              <div class="card-date">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                20 Nov
-              </div>
-              <div class="card-assignee" data-tooltip="Bruno">BC</div>
-            </div>
-          </div>
+          <div class="kanban-empty" th:if="${#lists.isEmpty(pendentes)}">Nenhuma tarefa pendente.</div>
+          <th:block th:each="t : ${pendentes}">
+            <div th:replace="~{::tarefaCard(${t})}"></div>
+          </th:block>
         </div>
 
         <!-- EM ANDAMENTO -->
         <div class="kanban-column in-progress">
           <div class="kanban-column-header">
             <h4>🔄 Em Andamento</h4>
-            <span class="count">4</span>
+            <span class="count" th:text="${#lists.size(emAndamento)}">0</span>
           </div>
-
-          <div class="kanban-card">
-            <div class="priority-bar critical"></div>
-            <div class="card-title">Implementar SIEM para monitoramento contínuo</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-de">DE</span>
-              <span class="mil-badge mil-0" style="font-size: 9px;">MIL 0 → 2</span>
-            </div>
-            <div class="card-footer-meta">
-              <div class="card-date" style="color: var(--danger); font-weight: 600;">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                Atrasado!
-              </div>
-              <div class="card-assignee" data-tooltip="Bruno">BC</div>
-            </div>
-            <button class="card-expand-btn" onclick="this.closest('.kanban-card').classList.toggle('expanded')">
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-              Anexos e evidências
-            </button>
-            <div class="card-evidence">
-              <div class="card-evidence-title">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                Nenhuma evidência
-              </div>
-              <div class="upload-inline">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                Anexar evidência
-              </div>
-            </div>
-          </div>
-
-          <div class="kanban-card expanded">
-            <div class="priority-bar high"></div>
-            <div class="card-title">Ativar MFA em todos os sistemas críticos</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-pr">PR</span>
-              <span class="mil-badge mil-1" style="font-size: 9px;">MIL 1 → 2</span>
-              <span class="evidence-tag">
-                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                1 evidência
-              </span>
-            </div>
-            <div class="card-footer-meta">
-              <div class="card-date">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                05 Out
-              </div>
-              <div class="card-assignee" data-tooltip="Gabriel">GA</div>
-            </div>
-            <button class="card-expand-btn" onclick="this.closest('.kanban-card').classList.toggle('expanded')">
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-              Anexos e evidências (1)
-            </button>
-            <div class="card-evidence">
-              <div class="card-evidence-title">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                1 arquivo anexado
-              </div>
-              <div class="evidence-file">
-                <svg class="ef-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-                <span class="ef-name">screenshot_mfa_ativo.png</span>
-                <span class="ef-size">248 KB</span>
-                <span class="ef-date">24 Set</span>
-              </div>
-              <div class="upload-inline">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                Anexar mais evidências
-              </div>
-            </div>
-          </div>
-
-          <div class="kanban-card">
-            <div class="priority-bar medium"></div>
-            <div class="card-title">Definir processo de comunicação de incidentes</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-rs">RS</span>
-              <span class="mil-badge mil-1" style="font-size: 9px;">MIL 1 → 2</span>
-            </div>
-            <div class="card-footer-meta">
-              <div class="card-date">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                25 Out
-              </div>
-              <div class="card-assignee" data-tooltip="Rafael">RM</div>
-            </div>
-          </div>
-
-          <div class="kanban-card">
-            <div class="priority-bar low"></div>
-            <div class="card-title">Documentar procedimentos de backup</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-rc">RC</span>
-              <span class="mil-badge mil-1" style="font-size: 9px;">MIL 1 → 2</span>
-              <span class="evidence-tag">
-                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                2 evidências
-              </span>
-            </div>
-            <div class="card-footer-meta">
-              <div class="card-date">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                28 Set
-              </div>
-              <div class="card-assignee" data-tooltip="Lucas">LO</div>
-            </div>
-            <button class="card-expand-btn" onclick="this.closest('.kanban-card').classList.toggle('expanded')">
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-              Anexos e evidências (2)
-            </button>
-            <div class="card-evidence">
-              <div class="card-evidence-title">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                2 arquivos anexados
-              </div>
-              <div class="evidence-file">
-                <svg class="ef-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-                <span class="ef-name">rotina_backup_v2.pdf</span>
-                <span class="ef-size">1.2 MB</span>
-                <span class="ef-date">22 Set</span>
-              </div>
-              <div class="evidence-file">
-                <svg class="ef-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-                <span class="ef-name">log_teste_restore_set2026.xlsx</span>
-                <span class="ef-size">340 KB</span>
-                <span class="ef-date">23 Set</span>
-              </div>
-              <div class="upload-inline">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                Anexar mais evidências
-              </div>
-            </div>
-          </div>
+          <div class="kanban-empty" th:if="${#lists.isEmpty(emAndamento)}">Nenhuma tarefa em andamento.</div>
+          <th:block th:each="t : ${emAndamento}">
+            <div th:replace="~{::tarefaCard(${t})}"></div>
+          </th:block>
         </div>
 
         <!-- CONCLUÍDO -->
         <div class="kanban-column done">
           <div class="kanban-column-header">
             <h4>✅ Concluído</h4>
-            <span class="count">7</span>
+            <span class="count" th:text="${#lists.size(concluidas)}">0</span>
           </div>
+          <div class="kanban-empty" th:if="${#lists.isEmpty(concluidas)}">Nenhuma tarefa concluída.</div>
+          <th:block th:each="t : ${concluidas}">
+            <div th:replace="~{::tarefaCard(${t})}"></div>
+          </th:block>
+        </div>
+      </div>
 
-          <div class="kanban-card" style="opacity: 0.75;">
-            <div class="priority-bar" style="background: var(--success);"></div>
-            <div class="card-title" style="text-decoration: line-through; color: var(--text-muted);">Documentar PSI e obter aprovação da direção</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-gv">GV</span>
-              <span class="mil-badge mil-2" style="font-size: 9px;">MIL 2 ✓</span>
-              <span class="evidence-tag">
-                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                3 evidências
-              </span>
-            </div>
+      <!-- Canceladas -->
+      <div class="cancel-list" th:if="${!#lists.isEmpty(canceladas)}">
+        <div class="section-label mb-16">Tarefas canceladas</div>
+        <div class="cancel-item" th:each="t : ${canceladas}">
+          <div>
+            <strong th:text="${t.titulo}">Tarefa</strong>
+            <span class="nist-badge" th:classappend="'nist-' + ${#strings.toLowerCase(t.funcaoNistSigla)}" th:text="${t.funcaoNistSigla}" style="margin-left: 6px;">PR</span>
           </div>
-
-          <div class="kanban-card" style="opacity: 0.75;">
-            <div class="priority-bar" style="background: var(--success);"></div>
-            <div class="card-title" style="text-decoration: line-through; color: var(--text-muted);">Configurar firewall com regras documentadas</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-pr">PR</span>
-              <span class="mil-badge mil-2" style="font-size: 9px;">MIL 2 ✓</span>
-            </div>
-          </div>
-
-          <div class="kanban-card" style="opacity: 0.75;">
-            <div class="priority-bar" style="background: var(--success);"></div>
-            <div class="card-title" style="text-decoration: line-through; color: var(--text-muted);">Implementar política de senhas fortes</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-pr">PR</span>
-              <span class="mil-badge mil-2" style="font-size: 9px;">MIL 2 ✓</span>
-            </div>
-          </div>
-
-          <div class="kanban-card" style="opacity: 0.75;">
-            <div class="priority-bar" style="background: var(--success);"></div>
-            <div class="card-title" style="text-decoration: line-through; color: var(--text-muted);">Classificar dados por nível de sensibilidade</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-id">ID</span>
-              <span class="mil-badge mil-2" style="font-size: 9px;">MIL 2 ✓</span>
-            </div>
-          </div>
-
-          <div class="kanban-card" style="opacity: 0.75;">
-            <div class="priority-bar" style="background: var(--success);"></div>
-            <div class="card-title" style="text-decoration: line-through; color: var(--text-muted);">Mapear processos de negócio dependentes de TI</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-id">ID</span>
-              <span class="mil-badge mil-2" style="font-size: 9px;">MIL 2 ✓</span>
-            </div>
-          </div>
-
-          <div class="kanban-card" style="opacity: 0.75;">
-            <div class="priority-bar" style="background: var(--success);"></div>
-            <div class="card-title" style="text-decoration: line-through; color: var(--text-muted);">Realizar análise de risco dos ativos principais</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-id">ID</span>
-              <span class="mil-badge mil-2" style="font-size: 9px;">MIL 2 ✓</span>
-            </div>
-          </div>
-
-          <div class="kanban-card" style="opacity: 0.75;">
-            <div class="priority-bar" style="background: var(--success);"></div>
-            <div class="card-title" style="text-decoration: line-through; color: var(--text-muted);">Política de backup documentada</div>
-            <div class="card-meta">
-              <span class="nist-badge nist-rc">RC</span>
-              <span class="mil-badge mil-2" style="font-size: 9px;">MIL 2 ✓</span>
-              <span class="evidence-tag">
-                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                1 evidência
-              </span>
-            </div>
+          <div class="card-actions" style="margin-top: 0;">
+            <form th:action="@{/governanca/{id}/status(id=${t.id})}" method="post">
+              <input type="hidden" name="status" value="BACKLOG">
+              <button type="submit" class="btn btn-secondary btn-xs">Reabrir</button>
+            </form>
+            <form th:action="@{/governanca/{id}/excluir(id=${t.id})}" method="post"
+                  onsubmit="return confirm('Excluir a tarefa e todas as suas evidências?');">
+              <button type="submit" class="btn btn-danger btn-xs">Excluir</button>
+            </form>
           </div>
         </div>
       </div>
 
-      <!-- Info: Evidence upload is inside each task card -->
       <div class="alert alert-info mt-24 animate-fade">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top: 1px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
         <div>
-          <strong>Evidências por tarefa</strong> — Clique em "Anexos e evidências" dentro de cada card para visualizar ou anexar arquivos diretamente à tarefa correspondente.
+          <strong>Evidências por tarefa</strong> — Clique em "Anexos e evidências" dentro de cada card para visualizar ou anexar arquivos (até 10 MB) diretamente à tarefa correspondente.
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- MODAL: Nova Tarefa -->
-<div class="modal-overlay" id="modal">
+<!-- MODAL: Nova / Editar Tarefa -->
+<div class="modal-overlay" id="modal" th:classappend="${modalTarefaAberto} ? ' active' : ''">
   <div class="modal">
-    <div class="modal-header">
-      <h3 style="font-size: 16px;">Nova Tarefa de Remediação</h3>
-      <button class="btn btn-ghost btn-icon" onclick="document.getElementById('modal').classList.remove('active')">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Título do Gap</label>
-        <input class="form-input" placeholder="Ex: Implementar controle de acesso baseado em papéis">
+    <form th:action="${tarefaEmEdicaoId != null} ? @{/governanca/{id}(id=${tarefaEmEdicaoId})} : @{/governanca}"
+          th:object="${tarefaForm}" method="post">
+      <div class="modal-header">
+        <h3 style="font-size: 16px;"
+            th:text="${tarefaEmEdicaoId != null} ? 'Editar Tarefa #' + ${tarefaEmEdicaoId} : 'Nova Tarefa de Remediação'">Nova Tarefa de Remediação</h3>
+        <a th:href="@{/governanca}" class="btn btn-ghost btn-icon" title="Fechar">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </a>
       </div>
-      <div class="form-group">
-        <label class="form-label">Função NIST</label>
-        <select class="form-select">
-          <option>Governar (GV)</option>
-          <option>Identificar (ID)</option>
-          <option>Proteger (PR)</option>
-          <option selected>Detectar (DE)</option>
-          <option>Responder (RS)</option>
-          <option>Recuperar (RC)</option>
-        </select>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">MIL Atual</label>
-          <select class="form-select">
-            <option selected>MIL 0</option>
-            <option>MIL 1</option>
-          </select>
+          <label class="form-label" for="titulo">Título da tarefa *</label>
+          <input id="titulo" type="text" class="form-input" th:field="*{titulo}" maxlength="180"
+                 placeholder="Ex: Implementar controle de acesso baseado em papéis">
+          <div class="field-error" th:if="${#fields.hasErrors('titulo')}" th:errors="*{titulo}">Erro no título</div>
         </div>
         <div class="form-group">
-          <label class="form-label">MIL Alvo</label>
-          <select class="form-select">
-            <option selected>MIL 2</option>
-            <option>MIL 3</option>
+          <label class="form-label" for="descricao">Descrição</label>
+          <textarea id="descricao" class="form-textarea" th:field="*{descricao}" maxlength="2000"
+                    placeholder="O que precisa ser feito e qual o critério de aceite?"></textarea>
+          <div class="field-error" th:if="${#fields.hasErrors('descricao')}" th:errors="*{descricao}">Erro na descrição</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="funcaoNistSigla">Função NIST *</label>
+          <select id="funcaoNistSigla" class="form-select" th:field="*{funcaoNistSigla}">
+            <option th:each="f : ${funcoesNist}" th:value="${f.sigla}" th:text="${f.nome + ' (' + f.sigla + ')'}">Proteger (PR)</option>
           </select>
+          <div class="field-error" th:if="${#fields.hasErrors('funcaoNistSigla')}" th:errors="*{funcaoNistSigla}">Erro na função</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="responsavelNome">Responsável</label>
+          <input id="responsavelNome" type="text" class="form-input" th:field="*{responsavelNome}" maxlength="100"
+                 placeholder="Ex: Gabriel Andrew">
+          <div class="field-error" th:if="${#fields.hasErrors('responsavelNome')}" th:errors="*{responsavelNome}">Erro no responsável</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="prazoLimite">Prazo</label>
+            <input id="prazoLimite" type="date" class="form-input" th:field="*{prazoLimite}">
+            <div class="field-error" th:if="${#fields.hasErrors('prazoLimite')}" th:errors="*{prazoLimite}">Erro no prazo</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prioridade">Prioridade *</label>
+            <select id="prioridade" class="form-select" th:field="*{prioridade}">
+              <option th:each="p : ${prioridades}" th:value="${p}" th:text="${p.descricao}">Alta</option>
+            </select>
+            <div class="field-error" th:if="${#fields.hasErrors('prioridade')}" th:errors="*{prioridade}">Erro na prioridade</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="status">Status</label>
+          <select id="status" class="form-select" th:field="*{status}">
+            <option th:each="s : ${statusFormulario}" th:value="${s}" th:text="${s.descricao}">Backlog / Pendente</option>
+          </select>
+          <div class="field-error" th:if="${#fields.hasErrors('status')}" th:errors="*{status}">Erro no status</div>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Responsável</label>
-        <select class="form-select">
-          <option>Gabriel Andrew</option>
-          <option>Bruno Calvacante</option>
-          <option>Lucas Oliveira</option>
-          <option>Rafael Melo</option>
-        </select>
+      <div class="modal-footer">
+        <a th:href="@{/governanca}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary"
+                th:text="${tarefaEmEdicaoId != null} ? 'Salvar Alterações' : 'Criar Tarefa'">Criar Tarefa</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">Prazo</label>
-        <input class="form-input" type="date" value="2026-10-15">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Prioridade</label>
-        <select class="form-select">
-          <option>🔴 Crítica</option>
-          <option selected>🟡 Alta</option>
-          <option>🔵 Média</option>
-          <option>🟢 Baixa</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="document.getElementById('modal').classList.remove('active')">Cancelar</button>
-      <button class="btn btn-primary" onclick="document.getElementById('modal').classList.remove('active')">Criar Tarefa</button>
-    </div>
+    </form>
   </div>
 </div>
 </body>

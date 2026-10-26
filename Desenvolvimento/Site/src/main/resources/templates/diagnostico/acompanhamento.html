@@ -88,102 +88,36 @@
 <body>
 <div class="app-layout">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      </div>
-      <div class="brand-text">
-        <h4>SecureDesk</h4>
-        <span>Protótipo TCC</span>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <div class="nav-section-title">Principal</div>
-      <a th:href="@{/dashboard}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Dashboard
-      </a>
-      <div class="nav-section-title">Módulos</div>
-      <a th:href="@{/diagnostico}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-        Diagnóstico
-      </a>
-      <a th:href="@{/acompanhamento}" class="nav-item active">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        Acompanhamento
-      </a>
-      <a th:href="@{/governanca}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-        Governança
-        <span class="nav-badge">5</span>
-      </a>
-      <a th:href="@{/compliance}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-        Compliance
-      </a>
-      <div class="nav-section-title">Sistema</div>
-      <a th:href="@{/configuracoes}" class="nav-item">
-        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        Configurações
-      </a>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="user-avatar">GA</div>
-        <div class="user-info">
-          <div class="user-name">Gabriel Andrew</div>
-          <div class="user-role">Administrador</div>
-        </div>
-      </div>
-    </div>
-  </aside>
+  <!-- SIDEBAR FRAGMENT -->
+  <aside th:replace="~{fragments/layout :: sidebar('acompanhamento')}"></aside>
 
   <!-- MAIN -->
   <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <div class="breadcrumb">
-          <a th:href="@{/dashboard}">Início</a>
-          <span class="separator">/</span>
-          <span>Acompanhamento</span>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <button class="btn btn-secondary btn-sm">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-          Exportar PDF
-        </button>
-        <a th:href="@{/diagnostico}" class="btn btn-primary btn-sm">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          Reavaliar
-        </a>
-      </div>
-    </header>
+    <!-- TOPBAR FRAGMENT -->
+    <header th:replace="~{fragments/layout :: topbar('acompanhamento', 'Acompanhamento')}"></header>
 
     <div class="page-content">
       <div class="page-header">
         <h1>Acompanhamento de Maturidade</h1>
-        <p>Radar de maturidade, score global e matriz de prioridade para a InnovaTech Soluções.</p>
+        <p>Radar de maturidade, score global e matriz de prioridade para a <span th:text="${empresaNome != null ? empresaNome : 'InnovaTech Soluções'}">InnovaTech Soluções</span>.</p>
       </div>
 
       <!-- Stats -->
       <div class="stats-grid stagger" style="grid-template-columns: repeat(3, 1fr);">
         <div class="stat-card" style="text-align: center;">
-          <div style="font-size: 42px; font-weight: 800; background: linear-gradient(135deg, #2563EB, #0891B2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">45%</div>
+          <div style="font-size: 42px; font-weight: 800; background: linear-gradient(135deg, #2563EB, #0891B2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;" th:text="${scoreGlobalFormatado != null ? scoreGlobalFormatado : '45%'}">45%</div>
           <div class="stat-label">Score Global de Maturidade</div>
           <div class="stat-change up">↑ 8% vs. último diagnóstico</div>
         </div>
         <div class="stat-card" style="text-align: center;">
-          <div style="font-size: 42px; font-weight: 800; color: var(--warning);">1.35</div>
+          <div style="font-size: 42px; font-weight: 800; color: var(--warning);" th:text="${milMedio != null ? milMedio : '1.35'}">1.35</div>
           <div class="stat-label">MIL Médio (de 3.0)</div>
           <div class="stat-change down" style="background: var(--warning-light); color: var(--warning);">Abaixo do MIL 2</div>
         </div>
         <div class="stat-card" style="text-align: center;">
-          <div style="font-size: 42px; font-weight: 800; color: var(--danger);">12</div>
+          <div style="font-size: 42px; font-weight: 800; color: var(--danger);" th:text="${totalGaps != null ? totalGaps : '12'}">12</div>
           <div class="stat-label">Gaps Abaixo do MIL 2</div>
-          <div class="stat-change down">5 críticos</div>
+          <div class="stat-change down"><span th:text="${gapsCriticos != null ? gapsCriticos : '5'}">5</span> críticos</div>
         </div>
       </div>
 
@@ -246,32 +180,32 @@
               <div class="radar-legend-item">
                 <div class="dot" style="background: #7C3AED;"></div>
                 <span>Governar</span>
-                <span class="value" style="color: #7C3AED;">MIL 1.2</span>
+                <span class="value" style="color: #7C3AED;" th:text="'MIL ' + (${scoreGvMil != null ? scoreGvMil : '1.2'})">MIL 1.2</span>
               </div>
               <div class="radar-legend-item">
                 <div class="dot" style="background: #2563EB;"></div>
                 <span>Identificar</span>
-                <span class="value" style="color: #2563EB;">MIL 2.1</span>
+                <span class="value" style="color: #2563EB;" th:text="'MIL ' + (${scoreIdMil != null ? scoreIdMil : '2.1'})">MIL 2.1</span>
               </div>
               <div class="radar-legend-item">
                 <div class="dot" style="background: #059669;"></div>
                 <span>Proteger</span>
-                <span class="value" style="color: #059669;">MIL 1.8</span>
+                <span class="value" style="color: #059669;" th:text="'MIL ' + (${scorePrMil != null ? scorePrMil : '1.8'})">MIL 1.8</span>
               </div>
               <div class="radar-legend-item">
                 <div class="dot" style="background: #D97706;"></div>
                 <span>Detectar</span>
-                <span class="value" style="color: #D97706;">MIL 0.9</span>
+                <span class="value" style="color: #D97706;" th:text="'MIL ' + (${scoreDeMil != null ? scoreDeMil : '0.9'})">MIL 0.9</span>
               </div>
               <div class="radar-legend-item">
                 <div class="dot" style="background: #DC2626;"></div>
                 <span>Responder</span>
-                <span class="value" style="color: #DC2626;">MIL 1.5</span>
+                <span class="value" style="color: #DC2626;" th:text="'MIL ' + (${scoreRsMil != null ? scoreRsMil : '1.5'})">MIL 1.5</span>
               </div>
               <div class="radar-legend-item">
                 <div class="dot" style="background: #0891B2;"></div>
                 <span>Recuperar</span>
-                <span class="value" style="color: #0891B2;">MIL 0.6</span>
+                <span class="value" style="color: #0891B2;" th:text="'MIL ' + (${scoreRcMil != null ? scoreRcMil : '0.6'})">MIL 0.6</span>
               </div>
             </div>
           </div>

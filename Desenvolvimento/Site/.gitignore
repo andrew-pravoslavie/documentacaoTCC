@@ -1,0 +1,27 @@
+# Maven / Java build
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# Maestri local role state
+.maestri/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Evidências enviadas em runtime
+uploads/

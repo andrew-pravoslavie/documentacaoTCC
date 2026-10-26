@@ -2,6 +2,29 @@
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 
-# OS files
+# Maven / Java build
+target/
+**/target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+**/.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+**/.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# Maestri
+.maestri/
+**/.maestri/
+
+# OS and Logs
+*.log
 .DS_Store
 Thumbs.db
