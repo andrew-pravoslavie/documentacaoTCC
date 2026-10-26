@@ -57,7 +57,7 @@ flowchart LR
 ```
 
 ### Fase 0: Higiene do repositório (fazer já)
-- [ ] Commitar a reorganização `Monografia/` (adiado a pedido do usuário).
+- [x] Commitar a reorganização `Monografia/` e sincronizar com o GitHub.
 - [x] Criar `.gitignore` para `target/`, `.idea/` e `.vscode/` e tirar essas pastas do índice (`git rm -r --cached`).
 - [x] Decidir o que fazer com `06 - Desenvolvimento/microsec` (remover ou arquivar) → **Removido**.
 - [x] Padronizar o nome do produto (SecureDesk ou MicroSec) → **Padronizado para SecureDesk (`securedesk`)**.
@@ -277,6 +277,8 @@ Substituição progressiva do `PageController` monolítico por controllers coeso
 | 20/10/2026 | Fase 1 (Item 1.5 / OED 2) — Templates Base Editáveis de Políticas: PSI, Controle de Acesso e Backup 3-2-1 (`docs/TEMPLATES_POLITICAS.md`) | GPT-OSS 120B | Concluído |
 | 20/10/2026 | Fase 1 (Item 1.6 / OEM 7a) — Plano de Testes de Software (`docs/PLANO_TESTES.md` — Unitários, Integração/Segurança e UAT com métricas SUS) | Flash 2 | Concluído |
 | 20/10/2026 | Fase 1 (Item 1.3 / OED 3) — Instrumento Completo de Diagnóstico (`docs/QUESTIONARIO_DIAGNOSTICO.md` — 30 questões, 120 opções MIL 0..3, mapeamento NIST CSF 2.0 + ISO 27002:2022 + metadados de Gap) | Flash 1 | Concluído |
+| 25/10/2026 | Repositório — Reorganização estrutural unificada (`Monografia/` e `Desenvolvimento/Site/`), limpeza de índice e sincronização completa com o GitHub (`origin/main`) | Argon | Concluído e sincronizado |
+
 | 21/10/2026 | Fase 3 — Especificação da Clean Architecture Estrita (Opção A), definição detalhada dos 4 CRUDs, 9 Controllers especializados, estratégia de dependências e seed manual posterior | Alinhamento Geral | Concluído e documentado em `docs/PLANO_DESENVOLVIMENTO.md` |
 
 
