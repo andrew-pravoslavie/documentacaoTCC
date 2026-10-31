@@ -17,7 +17,7 @@ Identificar e propor práticas de segurança básicas aplicáveis a pequenos par
 
 ## Objetivos Específicos
 1. **Conceituar** a [[Pilares da Cibersegurança|cibersegurança e seus pilares fundamentais]];
-2. **Caracterizar e delimitar** o que se entende por [[Delimitação do Pequeno Parque (<100 ativos)|pequeno parque de equipamentos de TI]], estabelecendo seu critério de porte — até 100 dispositivos gerenciados — e sua composição típica nas PMEs brasileiras;
+2. **Caracterizar e delimitar** o que se entende por [[Delimitação do Pequeno Parque ate 100 ativos|pequeno parque de equipamentos de TI]], estabelecendo seu critério de porte — até 100 dispositivos gerenciados — e sua composição típica nas PMEs brasileiras;
 3. **Explicar o contexto atual de vulnerabilidade** enfrentado pelas PMEs brasileiras que operam parques dessa dimensão ([[Justificativa & Cenário PMEs]]);
 4. **Investigar as principais brechas de segurança** comumente exploradas por atacantes nesse tipo de parque, relacionando-as às categorias de ativos que o compõem;
 5. **Analisar os frameworks de cibersegurança existentes** — com ênfase no [[NIST CSF 2.0]] e no [[C2M2 (Maturity Model)]] — verificando sua aplicabilidade a parques de pequeno porte;

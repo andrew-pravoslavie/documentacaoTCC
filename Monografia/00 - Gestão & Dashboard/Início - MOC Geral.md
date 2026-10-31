@@ -22,7 +22,7 @@ tags: [dashboard, tcc, moc]
 
 ### 2. Escopo & Definições do Pré-Projeto
 - [[Problema e Objetivos]] — A questão de pesquisa e os objetivos gerais/específicos.
-- [[Delimitação do Pequeno Parque (<100 ativos)]] — Critério de porte, endpoints, servidores, rede e nuvem.
+- [[Delimitação do Pequeno Parque ate 100 ativos]] — Critério de porte, endpoints, servidores, rede e nuvem.
 - [[Justificativa & Cenário PMEs]] — Assimetria de recursos, riscos e relevância socioeconômica.
 - [[Metodologia de Pesquisa]] — Abordagem qualitativa, pesquisa bibliográfica e documental.
 

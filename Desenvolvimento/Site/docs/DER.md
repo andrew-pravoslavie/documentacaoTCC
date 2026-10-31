@@ -338,7 +338,7 @@ Esta seção documenta em profundidade as divergências conceituais, estruturais
 
 ### Inconsistência 1: Discrepância na Categorização de Ativos de TI
 - **No Código Java (`TipoAtivo.java`):** Possui **6 constantes literais**: `ENDPOINT`, `SERVIDOR`, `REDE_PERIMETRO`, `MOVEL`, `NUVEM`, `OUTRO`.
-- **Na Monografia (`01 - Delimitação do Pequeno Parque (<100 ativos).md`):** O texto e os diagramas delimitam formalmente **4 categorias**:
+- **Na Monografia (`01 - Delimitação do Pequeno Parque ate 100 ativos.md`):** O texto e os diagramas delimitam formalmente **4 categorias**:
   1. *Endpoints Corporativos* (desktops, notebooks, periféricos com processamento);
   2. *Servidores Locais & Storage* (controladores de domínio AD/LDAP, servidores de arquivos, NAS);
   3. *Ativos de Rede e Perímetro* (roteadores, switches, gateways, firewalls, access points);

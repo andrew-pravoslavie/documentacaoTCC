@@ -11,7 +11,7 @@ tags: [redacao, capitulo2]
 - A Tríade CID e seus desdobramentos operacionais.
 
 ## 2.2 Caracterização do Pequeno Parque Tecnológico em PMEs
-*(Esboço baseado em [[Delimitação do Pequeno Parque (<100 ativos)]])*
+*(Esboço baseado em [[Delimitação do Pequeno Parque ate 100 ativos]])*
 - A delimitação de 100 dispositivos gerenciados.
 - Análise das 4 categorias de ativos.
 
