@@ -232,8 +232,8 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Nº de Dispositivos Gerenciados (Trava 100 ativos)</label>
-                <input class="form-input" type="number" max="100" th:value="${totalAtivos}" value="42">
-                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" th:text="${trava100Ativos != null ? trava100Ativos : '42 de 100 ativos cadastrados (trava PME em conformidade)'}">42 de 100 ativos cadastrados (trava PME em conformidade)</div>
+                <input class="form-input" type="number" max="100" th:value="${totalAtivos}" value="0" readonly>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" th:text="${trava100Ativos != null ? trava100Ativos : '0 de 100 ativos gerenciados (trava PME em conformidade)'}">0 de 100 ativos gerenciados (trava PME em conformidade)</div>
               </div>
               <div class="form-group" style="grid-column: span 2;">
                 <label class="form-label">Endereço</label>

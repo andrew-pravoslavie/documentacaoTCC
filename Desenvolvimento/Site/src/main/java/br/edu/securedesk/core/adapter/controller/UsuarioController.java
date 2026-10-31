@@ -133,10 +133,12 @@ public class UsuarioController {
         model.addAttribute("empresaSetor", "Tecnologia da Informação");
         model.addAttribute("empresaPorte", "Pequena Empresa");
         model.addAttribute("empresaFuncionarios", 12);
-        model.addAttribute("totalAtivos", 42);
-        model.addAttribute("limiteAtivos", 100);
-        model.addAttribute("ativosTexto", "42/100");
-        model.addAttribute("trava100Ativos", "42 de 100 ativos cadastrados (trava PME em conformidade)");
+        if (!model.containsAttribute("totalAtivos")) {
+            model.addAttribute("totalAtivos", 0);
+            model.addAttribute("limiteAtivos", 100);
+            model.addAttribute("ativosTexto", "0/100");
+            model.addAttribute("trava100Ativos", "0 de 100 ativos gerenciados (100 disponíveis na cota da PME)");
+        }
 
         // Usuário logado
         model.addAttribute("usuarioNome", "Gabriel Andrew");

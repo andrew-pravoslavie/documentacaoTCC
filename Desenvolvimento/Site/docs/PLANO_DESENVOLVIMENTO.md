@@ -280,6 +280,7 @@ Substituição progressiva do `PageController` monolítico por controllers coeso
 | 25/10/2026 | Repositório — Reorganização estrutural unificada (`Monografia/` e `Desenvolvimento/Site/`), limpeza de índice e sincronização completa com o GitHub (`origin/main`) | Argon | Concluído e sincronizado |
 
 | 21/10/2026 | Fase 3 — Especificação da Clean Architecture Estrita (Opção A), definição detalhada dos 4 CRUDs, 9 Controllers especializados, estratégia de dependências e seed manual posterior | Alinhamento Geral | Concluído e documentado em `docs/PLANO_DESENVOLVIMENTO.md` |
+| 31/10/2026 | Persistência Real (MySQL / MariaDB) — Configuração unificada via `jdbc:mysql://` (`com.mysql.cj.jdbc.Driver` + `MySQLDialect`) no perfil `dev`/`prod` e isolamento da suíte de testes em H2 (`src/test/resources/application.properties`) | Argon (Supervisor) | Concluído e validado no MariaDB (Arch Linux) e H2 (Testes) |
 
 
 

@@ -8,7 +8,7 @@
 ## 1. Visão Geral da Arquitetura Atual
 
 - **Produto:** SecureDesk (`br.edu:securedesk`)
-- **Stack:** Java 21 + Spring Boot 4.1.1 (Spring Web/Thymeleaf, Spring Data JPA, H2 em `dev`, MySQL/MariaDB em `prod`, Lombok).
+- **Stack:** Java 21 + Spring Boot 4.1.1 (Spring Web/Thymeleaf, Spring Data JPA, Persistência compatível com MySQL/MariaDB em `dev` e `prod`, H2 in-memory isolado em `test`, Lombok).
 - **Pacote raiz:** `br.edu.securedesk`
 - **Módulos de Domínio (30 classes em `entity/`):**
   1. `core`: `Empresa`, `PorteEmpresa`, `SetorEmpresa`, `Usuario`, `PerfilUsuario`, `TermoConsentimentoLgpd`
@@ -119,6 +119,17 @@
   - Estratégia e Pirâmide de Testes (Unitários JUnit 5/Mockito, Integração `@SpringBootTest`/MockMvc/H2 e Aceitação UAT).
   - Especificação de `UT-SCORE-01` a `UT-SCORE-08` (regra cumulativa C2M2) e `UT-ATIVO-01` a `UT-ATIVO-04` (trava de 100 ativos `RN01`).
   - Especificação de testes de integração, isolamento multi-empresa (`RN04`), imutabilidade (`RN06`), LGPD (`RN05`) e roteiro de 6 etapas para o Estudo de Caso na empresa parceira com métricas SUS ($\ge 70$).
+
+---
+
+## 5. Persistência Real Unificada (MySQL / MariaDB) e Isolamento de Testes
+
+### [31/10/2026] — Integração com Banco Relacional Persistente (`jdbc:mysql://`)
+- **Responsável:** Argon (Supervisor)
+- **Conteúdo construído:**
+  - **Compatibilidade Simultânea MySQL + MariaDB:** Configurado `src/main/resources/application-dev.properties` e `application-prod.properties` utilizando o protocolo padrão MySQL (`jdbc:mysql://localhost:3306/securedesk`), driver `com.mysql.cj.jdbc.Driver` e dialeto `org.hibernate.dialect.MySQLDialect`. Essa configuração funciona de forma transparente tanto em ambientes com **MySQL Server** quanto em ambientes Arch Linux com **MariaDB** (`13.0.2-MariaDB`), mantendo 100% de aderência à especificação do TCC.
+  - **Isolamento da Suíte de Testes (`src/test/resources/application.properties`):** Criado arquivo de propriedades exclusivo para o escopo de testes apontando para o H2 em memória (`jdbc:h2:mem:securedesk_test;MODE=MySQL`), garantindo que a execução de `./mvnw test` (76 testes automatizados) jamais limpe ou afete os dados reais persistidos no banco MySQL/MariaDB.
+
 
 
 

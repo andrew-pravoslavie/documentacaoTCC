@@ -1,5 +1,8 @@
 package br.edu.securedesk.controller;
 
+import br.edu.securedesk.ativo.domain.Ativo;
+import br.edu.securedesk.ativo.usecase.boundary.input.AtivoInputBoundary;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,23 +12,39 @@ import org.springframework.web.bind.annotation.PostMapping;
 /**
  * Controller responsável pelo protótipo navegável do SecureDesk (Fase 2).
  * Serve as páginas da aplicação e alimenta os templates Thymeleaf com dados
- * fictícios realistas de uma PME em conformidade com o NIST CSF 2.0 e C2M2.
+ * da PME em conformidade com o NIST CSF 2.0 e C2M2.
  */
 @Controller
 public class PageController {
 
+    private static final Long EMPRESA_PADRAO_ID = 1L;
+
+    private final AtivoInputBoundary ativoInputBoundary;
+
+    public PageController(@Autowired(required = false) AtivoInputBoundary ativoInputBoundary) {
+        this.ativoInputBoundary = ativoInputBoundary;
+    }
+
     @ModelAttribute
     public void popularDadosPme(Model model) {
+        int totalAtivos = ativoInputBoundary != null
+                ? ativoInputBoundary.consultarTotalAtivosPorEmpresa(EMPRESA_PADRAO_ID)
+                : 0;
+        int limiteAtivos = Ativo.LIMITE_MAXIMO_PARQUE;
+        int cotaDisponivel = Math.max(0, limiteAtivos - totalAtivos);
+
         // Dados da PME monitorada
         model.addAttribute("empresaNome", "InnovaTech Soluções Ltda.");
         model.addAttribute("empresaCnpj", "12.345.678/0001-90");
         model.addAttribute("empresaSetor", "Tecnologia da Informação");
         model.addAttribute("empresaPorte", "Pequena Empresa");
         model.addAttribute("empresaFuncionarios", 12);
-        model.addAttribute("totalAtivos", 42);
-        model.addAttribute("limiteAtivos", 100);
-        model.addAttribute("ativosTexto", "42/100");
-        model.addAttribute("trava100Ativos", "42 de 100 ativos cadastrados (trava PME em conformidade)");
+        model.addAttribute("totalAtivos", totalAtivos);
+        model.addAttribute("limiteAtivos", limiteAtivos);
+        model.addAttribute("ativosTexto", totalAtivos + "/" + limiteAtivos);
+        model.addAttribute("trava100Ativos",
+                String.format("%d de %d ativos gerenciados (%d disponíveis na cota da PME)",
+                        totalAtivos, limiteAtivos, cotaDisponivel));
 
         // Usuário logado
         model.addAttribute("usuarioNome", "Gabriel Andrew");
